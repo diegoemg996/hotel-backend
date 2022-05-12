@@ -21,6 +21,15 @@ const usuarioSchema = mongoose.Schema({
         type: String,
         required: [true, "Al apellido es obligatorio"],
     },
+    role: {
+        type: String,
+        required: [true, "El rol es obligatorio"],
+        enum: {
+            values: ['admin', 'user'],
+            message: '{VALUE} only has two values "admin" or "user"'
+        },
+        default: 'user'
+    },
     address:{
         type: String
     },

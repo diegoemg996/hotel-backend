@@ -1,6 +1,8 @@
 
 import generarJWT from "../helpers/generarJWT.js";
 import Usuario from "../models/Usuario.js";
+import jwt from "jsonwebtoken";
+
 
 
 
@@ -11,14 +13,15 @@ const registrar = async(req, res) => {
 
     if(existeUsuario){
         const error = new Error("Usuario ya registrado");
-        return res.status(400).json({msg: error.message});
+        return res.status(400).json({ok: false,msg: error.message});
     }
     try {
         const usuario = new Usuario(req.body);
         const usuarioAlmacenado = await usuario.save();
-        res.json(usuarioAlmacenado);
+        res.status(200).json({ok: true, data: "Usuario registrado"});
 
     } catch (error) {
+        console.log(error);
         res.status(400).json(error)
     }
 
@@ -40,15 +43,77 @@ const autenticar = async (req, res) =>{
             _id: usuario._id,
             firstName: usuario.firstName,
             lastName: usuario.lastName,
-            token: generarJWT(usuario._id)
+            role: usuario.role,
+            token: generarJWT({
+                _id: usuario._id,
+            })
 
         })
     }else{
         const error = new Error("El password es incorrecto");
         return res.status(403).json({msg: error.message});
     }
+}
+
+
+const validarToken = async(req, res) =>{
+
+
+    const {token} = req.body;
+
+    if(!token){
+        const error = new Error("Token no enviado");
+        return res.status(401).json({msg: error.message});
+    }
+
+    let userId = "";
+
+    console.log(token);
+
+    try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET);
+        userId = payload._id;
+    } catch (error) {
+
+        console.log(error);
+        
+        return res.status(401).json({msg: "Token invalido"});
+    }
+
+    const usuario = await Usuario.findById(userId);
+
+    if(!usuario){
+        const error = new Error("Usuario no encontrado");
+        return res.status(404).json({msg: error.message});
+    }
+
+    res.json({
+
+        _id: usuario._id,
+        firstName: usuario.firstName,
+        lastName: usuario.lastName,
+        role: usuario.role,
+        token: generarJWT({
+            _id: usuario._id,
+        })
+
+    })
 
 }
+
+const obtenerUsuario = async(req, res) => {
+
+    const {id} = req.params;
+    const usuario = await Usuario.findById(id);
+
+    if(!usuario){
+        const error = new Error("Usuario no encontrado");
+        return res.status(404).json({msg: error.message});
+    }
+
+    res.status(200).json(usuario);
+}
+
 
 
 const editarUsuario = async(req, res) =>{
@@ -109,4 +174,4 @@ const obtenerUsuarios = async(req, res) => {
 
 
 
-export {registrar, autenticar, obtenerUsuarios, editarUsuario, eliminarUsuario};
+export {registrar, autenticar, obtenerUsuarios, editarUsuario, eliminarUsuario, validarToken, obtenerUsuario};
